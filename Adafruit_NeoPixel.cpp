@@ -68,12 +68,18 @@ Adafruit_NeoPixel::~Adafruit_NeoPixel() {
   if(pixels)   free(pixels);
   if(pin >= 0) pinMode(pin, INPUT);
 }
+#ifdef ESP32
+  extern void begin_esp32(uint8_t pin, uint16_t pixelCount);
+#endif
 
 void Adafruit_NeoPixel::begin(void) {
   if(pin >= 0) {
     pinMode(pin, OUTPUT);
     digitalWrite(pin, LOW);
   }
+  #ifdef ESP32
+    begin_esp32((uint8_t)pin, numLEDs);
+  #endif
   begun = true;
 
 }
@@ -115,8 +121,8 @@ void Adafruit_NeoPixel::updateType(neoPixelType t) {
 extern "C" void ICACHE_RAM_ATTR espShow(
   uint8_t pin, uint8_t *pixels, uint32_t numBytes, uint8_t type);
 #elif defined(ESP32)
-extern "C" void espShow(
-  uint8_t pin, uint8_t *pixels, uint32_t numBytes, uint8_t type);
+extern void esp32Show(
+  uint8_t pin, uint8_t *pixels, uint16_t numBytes, uint8_t type);
 #endif // ESP8266
 
 void Adafruit_NeoPixel::show(void) {
@@ -1869,13 +1875,16 @@ void Adafruit_NeoPixel::show(void) {
 // END ARM ----------------------------------------------------------------
 
 
-#elif defined(ESP8266) || defined(ESP32)
+#elif defined(ESP8266) 
 
 // ESP8266 ----------------------------------------------------------------
 
   // ESP8266 show() is external to enforce ICACHE_RAM_ATTR execution
   espShow(pin, pixels, numBytes, is800KHz);
 
+#elif defined(ESP32)
+// make use of hardware RMT
+  esp32Show(pin, pixels, numBytes, is800KHz);
 #elif defined(__ARDUINO_ARC__)
 
 // Arduino 101  -----------------------------------------------------------
